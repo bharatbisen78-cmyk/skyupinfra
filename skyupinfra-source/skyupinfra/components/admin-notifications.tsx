@@ -1,0 +1,17 @@
+'use client';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { Bell, Check, CheckCheck, ExternalLink } from 'lucide-react';
+
+type Notice = { id: string; kind: string; title: string; body: string; order_id: string | null; target_path: string | null; read_at: string | null; created_at: string };
+export function AdminNotifications() {
+  const [items, setItems] = useState<Notice[]>([]); const [error, setError] = useState(''); const [busy, setBusy] = useState('');
+  const refresh = useCallback(async () => { try { const r = await fetch('/api/admin/notifications', { cache: 'no-store' }); const b = await r.json(); if (!r.ok) throw new Error(b.error || 'Notifications unavailable.'); setItems(Array.isArray(b.notifications) ? b.notifications : []); setError(''); } catch (e) { setError(e instanceof Error ? e.message : 'Notifications unavailable.'); } }, []);
+  useEffect(() => { void refresh(); const timer = window.setInterval(() => void refresh(), 15000); return () => window.clearInterval(timer); }, [refresh]);
+  const unread = items.filter(n => !n.read_at).length;
+  async function mark(id?: string) { const key = id || 'all'; setBusy(key); try { const r = await fetch('/api/admin/notifications', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(id ? { id } : { all: true }) }); const b = await r.json(); if (!r.ok) throw new Error(b.error || 'Could not update notifications.'); setItems(old => old.map(n => (!id || n.id === id) ? { ...n, read_at: b.read_at || new Date().toISOString() } : n)); setError(''); } catch (e) { setError(e instanceof Error ? e.message : 'Could not update notifications.'); } finally { setBusy(''); } }
+  return <section className="admin-section" id="notifications"><div className="section-heading"><div><span className="eyebrow">INCOMING SIGNALS</span><h2>Order notifications {unread > 0 && <span className="admin-unread-count">{unread}</span>}</h2></div><div className="admin-notification-controls"><span className="count-label">Refreshes every 15 seconds</span><button type="button" className="text-button" disabled={!unread || !!busy} onClick={() => void mark()}><CheckCheck size={13}/> Mark all read</button></div></div>
+    {error && <div className="message error" role="status">{error}</div>}
+    {items.length ? <div className="admin-notification-list">{items.map(item => <article className={`admin-notification-row panel ${!item.read_at ? 'unread' : ''}`} key={item.id}><div className="notification-icon"><Bell size={16}/></div><div className="notification-main"><div className="notification-title-line"><strong>{item.title}</strong>{!item.read_at && <span className="notification-dot"/>}</div><p>{item.body}</p><small>{new Date(item.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })}</small>{item.target_path && <Link href={item.target_path} className="text-button" onClick={() => { if (!item.read_at) void mark(item.id); }}>Open protected page <ExternalLink size={12}/></Link>}</div>{!item.read_at && <button className="notification-read" type="button" onClick={() => void mark(item.id)} disabled={!!busy} aria-label={`Mark ${item.title} as read`} title="Mark as read"><Check size={15}/></button>}</article>)}</div> : !error ? <div className="empty-panel panel"><Bell size={20}/><p>No notifications yet. New COD orders will appear here.</p></div> : null}
+  </section>;
+}

@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "Skyupinfra — A store beyond tomorrow",
+  "short_name": "Skyupinfra",
+  "description": "A smarter way to discover and shop across categories.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071729",
+  "theme_color": "#071729",
+  "icons": [{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
